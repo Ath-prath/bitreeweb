@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Binary Search Tree Visualization</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px;
+      color: #0d47a1;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      padding: 15px;
+      margin: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px solid #90caf9;
+      outline: none;
+      font-size: 16px;
+    }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #1565c0;
+    }
+
+    #message, #traversalOutput {
+      margin-top: 10px;
+      font-size: 18px;
+      text-align: center;
+      padding: 8px 15px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 80%;
+      max-width: 600px;
+    }
+
+    #traversalOutput {
+      color: #2e7d32;
+    }
+
+    canvas {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌳 Binary Search Tree Visualizer</h1>
+    <p>Insert, Search, Delete & Traverse the BST</p>
+  </header>
+
+  <div class="panel">
+    <input type="number" id="value" placeholder="Enter a number" />
+    <button onclick="insertNode()">Insert</button>
+    <button onclick="searchNode()">Search</button>
+    <button onclick="deleteNode()">Delete</button>
+    <button onclick="showInorder()">Inorder</button>
+    <button onclick="showPreorder()">Preorder</button>
+    <button onclick="showPostorder()">Postorder</button>
+  </div>
+
+  <p id="message"></p>
+  <p id="traversalOutput"></p>
+  <canvas id="treeCanvas" width="950" height="500"></canvas>
+
+  <script>
+    class Node {
+      constructor(key) {
+        this.key = key;
+        this.left = null;
+        this.right = null;
+      }
+    }
+
+    class BinaryTree {
+      constructor() {
+        this.root = null;
+      }
+
+      insert(key) {
+        this.root = this._insertRec(this.root, key);
+      }
+
+      _insertRec(node, key) {
+        if (!node) return new Node(key);
+        if (key < node.key) node.left = this._insertRec(node.left, key);
+        else if (key > node.key) node.right = this._insertRec(node.right, key);
+        return node;
+      }
+
+      search(key) {
+        return this._searchRec(this.root, key);
+      }
+
+      _searchRec(node, key) {
+        if (!node) return false;
+        if (node.key === key) return true;
+        return key < node.key
+          ? this._searchRec(node.left, key)
+          : this._searchRec(node.right, key);
+      }
+
+      delete(key) {
+        this.root = this._deleteRec(this.root, key);
+      }
+
+      _deleteRec(node, key) {
+        if (!node) return node;
+        if (key < node.key) node.left = this._deleteRec(node.left, key);
+        else if (key > node.key) node.right = this._deleteRec(node.right, key);
+        else {
+          if (!node.left) return node.right;
+          if (!node.right) return node.left;
+          let minNode = this._minValueNode(node.right);
+          node.key = minNode.key;
+          node.right = this._deleteRec(node.right, minNode.key);
+        }
+        return node;
+      }
+
+      _minValueNode(node) {
+        while (node.left) node = node.left;
+        return node;
+      }
+
+      // Traversals
+      inorder(node, result = []) {
+        if (node) {
+          this.inorder(node.left, result);
+          result.push(node.key);
+          this.inorder(node.right, result);
+        }
+        return result;
+      }
+
+      preorder(node, result = []) {
+        if (node) {
+          result.push(node.key);
+          this.preorder(node.left, result);
+          this.preorder(node.right, result);
+        }
+        return result;
+      }
+
+      postorder(node, result = []) {
+        if (node) {
+          this.postorder(node.left, result);
+          this.postorder(node.right, result);
+          result.push(node.key);
+        }
+        return result;
+      }
+    }
+
+    // Visualization
+    const canvas = document.getElementById("treeCanvas");
+    const ctx = canvas.getContext("2d");
+    const tree = new BinaryTree();
+    let highlightKey = null;
+
+    function drawTree() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawNode(tree.root, canvas.width / 2, 50, canvas.width / 4);
+    }
+
+    function drawNode(node, x, y, dx) {
+      if (!node) return;
+
+      if (node.left) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - dx, y + 80);
+        ctx.strokeStyle = "#757575";
+        ctx.stroke();
+        drawNode(node.left, x - dx, y + 80, dx / 2);
+      }
+
+      if (node.right) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + dx, y + 80);
+        ctx.strokeStyle = "#757575";
+        ctx.stroke();
+        drawNode(node.right, x + dx, y + 80, dx / 2);
+      }
+
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, 2 * Math.PI);
+      ctx.fillStyle =
+        node.key === highlightKey ? "#fdd835" : "#66bb6a"; 
+      ctx.fill();
+      ctx.strokeStyle = "#2e7d32";
+      ctx.stroke();
+
+      ctx.fillStyle = "white";
+      ctx.font = "bold 16px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(node.key, x, y);
+    }
+
+    // Button actions
+    function insertNode() {
+      const val = document.getElementById("value").value;
+      if (val === "") return;
+      tree.insert(parseInt(val));
+      document.getElementById("message").innerText = `Inserted ${val}`;
+      highlightKey = null;
+      drawTree();
+    }
+
+    function searchNode() {
+      const val = document.getElementById("value").value;
+      if (val === "") return;
+      const found = tree.search(parseInt(val));
+      document.getElementById("message").innerText = found
+        ? `${val} found ✅`
+        : `${val} not found ❌`;
+      highlightKey = found ? parseInt(val) : null;
+      drawTree();
+    }
+
+    function deleteNode() {
+      const val = document.getElementById("value").value;
+      if (val === "") return;
+      tree.delete(parseInt(val));
+      document.getElementById("message").innerText = `Deleted ${val}`;
+      highlightKey = null;
+      drawTree();
+    }
+
+    function showInorder() {
+      const res = tree.inorder(tree.root);
+      document.getElementById("traversalOutput").innerText =
+        "Inorder: " + res.join(" → ");
+    }
+
+    function showPreorder() {
+      const res = tree.preorder(tree.root);
+      document.getElementById("traversalOutput").innerText =
+        "Preorder: " + res.join(" → ");
+    }
+
+    function showPostorder() {
+      const res = tree.postorder(tree.root);
+      document.getElementById("traversalOutput").innerText =
+        "Postorder: " + res.join(" → ");
+    }
+
+    drawTree();
+  </script>
+</body>
+</html>
